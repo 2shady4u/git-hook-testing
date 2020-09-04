@@ -1,4 +1,4 @@
 #!C:/Program\ Files/Git/usr/bin/sh.exe
 echo
-exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\.git\hooks\pre-commit.ps1"
+exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\.githooks\pre-commit.ps1"
 exit
