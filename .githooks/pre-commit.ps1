@@ -23,35 +23,38 @@ $output = 0
 $command = "git diff --name-only --cached"
 $command_output = Invoke-Expression $Command
 
+# Go through all the staged files!
 foreach ($name in $command_output)
 {
+    # Check if the file is excluded or not!
     if ($excluded_files -contains (Get-Item $name ).Name){
         continue
     }
 
+    # Attempt to snake_match the file-name.
     $basename = (Get-Item $name ).BaseName
     $match = $basename -cmatch $regex_snake_case
-    if ($match) {
-        write-output "Snake matched: $basename"
-    } else {
-        write-output "Does not obey snake_match: $basename"
+    if (-Not ($match)) {
+        write-output "FAILURE: Staged File does not obey snake_match: '$basename'"
         $output += 1
     }
 
+    # Go through the entire folder path as well...
     $folders = $name.Split('/')
+    # Skip the last element since it is the file-name.
     $folders = $folders | Select-Object -SkipLast 1
 
     foreach ($folder in $folders)
     {
+        # Again check if the folder belongs to the excluded list or not...
         if ($excluded_directories -contains $folder){
             continue
         }
 
+        # Attempt to snake_match the file-name.
         $match = $folder -cmatch $regex_snake_case
-        if ($match) {
-            write-output "Snake matched: $folder"
-        } else {
-            write-output "Does not obey snake_match: $folder"
+        if (-Not ($match)) {
+            write-output "FAILURE: Staged directory-path does not obey snake_match: '$folder'"
             $output += 1
         }
     }
