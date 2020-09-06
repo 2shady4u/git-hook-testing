@@ -1,6 +1,12 @@
 write-output "This is a pre-commit powershell call"
 write-output "======================================="
 
+$excluded_files = @('README.md', 'pre-commit', 'pre-commit.ps1')
+$excluded_directories = @('.githooks')
+
+# Regular expression for matching snake_case
+$regex_snake_case = '^[a-z][_[a-z]+]?$'
+
 # Set path correctly.
 $originaldir = Get-Location
 $scriptpath = $MyInvocation.MyCommand.Path
@@ -10,43 +16,44 @@ $dir = Split-Path -Path $dir -Parent
 Write-host "My directory is $dir"
 Set-Location -Path $dir
 
-$exfiles = @('README.md', 'pre-commit', 'pre-commit.ps1')
-$exdirectories = @('.githooks')
-
-$files = Get-ChildItem -Path $dir -Recurse -Name -File
-$directories = Get-ChildItem -Path $dir -Recurse -Name -Directory
-$matchstring = '^[a-z][_[a-z]+]?$'
+# The output that will contain the eventual pre-commit verdict!
 $output = 0
 
-foreach ($name in $files)
+# Get all the staged files...
+$command = "git diff --name-only --cached"
+$command_output = Invoke-Expression $Command
+
+foreach ($name in $command_output)
 {
-    if ($exfiles -contains (Get-Item $name ).Name){
+    if ($excluded_files -contains (Get-Item $name ).Name){
         continue
     }
 
-    $name = (Get-Item $name ).BaseName
-    $snakematch = $name -cmatch $matchstring
-    if ($snakematch) {
-        write-output "Snake matched: $name"
+    $basename = (Get-Item $name ).BaseName
+    $match = $basename -cmatch $regex_snake_case
+    if ($match) {
+        write-output "Snake matched: $basename"
     } else {
-        write-output "Does not obey snake_match: $name"
+        write-output "Does not obey snake_match: $basename"
         $output += 1
     }
-}
 
-foreach ($name in $directories)
-{
-    if ($exdirectories -contains $name){
-        continue
-    }
+    $folders = $name.Split('/')
+    $folders = $folders | Select-Object -SkipLast 1
 
-    $name = (Get-Item $name ).BaseName
-    $snakematch = $name -cmatch $matchstring
-    if ($snakematch) {
-        write-output "Snake matched: $name"
-    } else {
-        write-output "Does not obey snake_match: $name"
-        $output += 1
+    foreach ($folder in $folders)
+    {
+        if ($excluded_directories -contains $folder){
+            continue
+        }
+
+        $match = $folder -cmatch $regex_snake_case
+        if ($match) {
+            write-output "Snake matched: $folder"
+        } else {
+            write-output "Does not obey snake_match: $folder"
+            $output += 1
+        }
     }
 }
 
